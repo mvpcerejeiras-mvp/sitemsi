@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSettings } from '../hooks/useSettings';
 
 interface SettingsViewProps {
   categories?: string[];
@@ -7,29 +8,78 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCategory, onDeleteCategory }) => {
+  const { settings, updateSettings, loading } = useSettings();
+
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
 
   // Form State
-  const [orgName, setOrgName] = useState('MSI Global');
-  const [supportEmail, setSupportEmail] = useState('support@msi.org');
-  const [timezone, setTimezone] = useState('Brasilia (GMT-3)');
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
+  const [formData, setFormData] = useState({
+    org_name: '',
+    support_email: '',
+    timezone: '',
+    maintenance_mode: false,
+    logo_url: ''
+  });
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setShowSuccess(false);
+  // Load settings into form state
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        org_name: settings.org_name || '',
+        support_email: settings.support_email || '',
+        timezone: settings.timezone || 'Brasilia (GMT-3)',
+        maintenance_mode: settings.maintenance_mode || false,
+        logo_url: settings.logo_url || ''
+      });
+    }
+  }, [settings]);
 
-    // Simulate API call
-    setTimeout(() => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setShowSuccess(false);
+      setErrorMsg(null);
+
+      const result = await updateSettings({
+        org_name: formData.org_name,
+        support_email: formData.support_email,
+        timezone: formData.timezone,
+        maintenance_mode: formData.maintenance_mode,
+        logo_url: formData.logo_url
+      });
+
+      // Verificação defensiva se result for undefined (caso o hook falhe silenciosamente)
+      if (!result) {
+        throw new Error("Falha interna ao atualizar configurações.");
+      }
+
+      const { success, error } = result;
+
+      if (success) {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        setErrorMsg(error || 'Erro ao salvar configurações.');
+      }
+    } catch (err: any) {
+      console.error("Erro crítico ao salvar:", err);
+      setErrorMsg("Ocorreu um erro inesperado. Tente recarregar a página.");
+    } finally {
       setIsSaving(false);
-      setShowSuccess(true);
-
-      // Hide success message after 3 seconds
-      setTimeout(() => setShowSuccess(false), 3000);
-    }, 1200);
+    }
   };
 
   const handleAddCategorySubmit = (e: React.FormEvent) => {
@@ -39,6 +89,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
       setNewCategory('');
     }
   };
+
+  if (loading && !settings) {
+    return <div className="p-8 text-center text-slate-500">Carregando configurações...</div>;
+  }
 
   return (
     <div className="flex-1 overflow-auto p-8 bg-slate-50 dark:bg-background-dark h-full">
@@ -55,9 +109,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
           </div>
         )}
 
+        {errorMsg && (
+          <div className="p-4 bg-error/10 border border-error/20 text-error rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="material-symbols-outlined">error</span>
+            <span className="text-sm font-bold">{errorMsg}</span>
+          </div>
+        )}
+
         <div className="space-y-6">
 
-          {/* Gerenciamento de Categorias - NOVO */}
+          {/* Gerenciamento de Categorias */}
           {onAddCategory && onDeleteCategory && (
             <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-slate-800">
@@ -115,8 +176,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome da Organização</label>
                   <input
                     type="text"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
+                    name="org_name"
+                    value={formData.org_name}
+                    onChange={handleInputChange}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -124,17 +186,41 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email de Suporte</label>
                   <input
                     type="email"
-                    value={supportEmail}
-                    onChange={(e) => setSupportEmail(e.target.value)}
+                    name="support_email"
+                    value={formData.support_email}
+                    onChange={handleInputChange}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
+
+              {/* Logo URL Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Logo URL</label>
+                <div className="flex gap-4 items-center">
+                  <input
+                    type="text"
+                    name="logo_url"
+                    placeholder="https://exemplo.com/logo.png"
+                    value={formData.logo_url}
+                    onChange={handleInputChange}
+                    className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {formData.logo_url && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-200">
+                      <img src={formData.logo_url} alt="Logo Preview" className="w-full h-full object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Cole a URL direta da imagem do logo do sistema.</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Timezone Padrão</label>
                 <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
+                  name="timezone"
+                  value={formData.timezone}
+                  onChange={handleInputChange}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option>Brasilia (GMT-3)</option>
@@ -160,24 +246,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
+                    name="maintenance_mode"
                     className="sr-only peer"
-                    checked={maintenanceMode}
-                    onChange={(e) => setMaintenanceMode(e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
-                <div>
-                  <h4 className="text-sm font-medium text-slate-900 dark:text-white">Notificações por Email</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Receber alertas sobre status de sites offline.</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={notifications}
-                    onChange={(e) => setNotifications(e.target.checked)}
+                    checked={formData.maintenance_mode}
+                    onChange={handleInputChange}
                   />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                 </label>
@@ -187,6 +259,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ categories = [], onAddCateg
 
           <div className="flex justify-end gap-3">
             <button
+              onClick={() => window.location.reload()}
               className="px-6 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
               disabled={isSaving}
             >

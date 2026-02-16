@@ -12,11 +12,13 @@ interface PortalViewProps {
 
 const PortalView: React.FC<PortalViewProps> = ({ sites, onAddClick, onUpdateSite, categories }) => {
   const [activeCategory, setActiveCategory] = useState<SiteCategory>('Todos');
-  const [selectedSiteForManage, setSelectedSiteForManage] = useState<Site | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
   const filteredSites = activeCategory === 'Todos'
     ? sites
     : sites.filter(site => site.category === activeCategory);
+
+  const selectedSite = sites.find(s => s.id === selectedSiteId);
 
   return (
     <div className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-10 py-8">
@@ -90,7 +92,7 @@ const PortalView: React.FC<PortalViewProps> = ({ sites, onAddClick, onUpdateSite
                   <span className="material-symbols-outlined text-sm">open_in_new</span>
                 </a>
                 <button
-                  onClick={() => setSelectedSiteForManage(site)}
+                  onClick={() => setSelectedSiteId(site.id)}
                   className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-lg transition-all active:scale-95 text-sm"
                 >
                   <span className="material-symbols-outlined text-[18px]">settings</span>
@@ -117,14 +119,14 @@ const PortalView: React.FC<PortalViewProps> = ({ sites, onAddClick, onUpdateSite
       </div>
 
       {/* Site Management Modal */}
-      {selectedSiteForManage && (
+      {selectedSite && (
         <SiteManagementModal
-          site={selectedSiteForManage}
-          isOpen={!!selectedSiteForManage}
-          onClose={() => setSelectedSiteForManage(null)}
+          site={selectedSite}
+          isOpen={!!selectedSite}
+          onClose={() => setSelectedSiteId(null)}
           onUpdate={(updatedSite) => {
             onUpdateSite(updatedSite);
-            setSelectedSiteForManage(updatedSite);
+            // No need to manually update local state as sites prop will update
           }}
         />
       )}

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { SystemSettings } from '../hooks/useSettings';
 
 interface AuthViewProps {
   onLogin: () => void;
+  settings?: SystemSettings | null;
 }
 
 type AuthMode = 'login' | 'forgot-password';
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, settings }) => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +18,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     // Credenciais solicitadas
     if (email === 'msig12@gmail.com' && password === 'vida1293') {
       onLogin();
@@ -40,10 +42,19 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-background-dark p-4">
       <div className="w-full max-w-md bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-primary/30">
-            <span className="material-symbols-outlined text-4xl">hub</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Sites MSI</h1>
+          {settings?.logo_url ? (
+            <img
+              src={settings.logo_url}
+              alt={settings.org_name || "Logo"}
+              className="h-20 w-auto object-contain mb-4 rounded-xl"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-primary/30">
+              <span className="material-symbols-outlined text-4xl">hub</span>
+            </div>
+          )}
+
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{settings?.org_name || 'Sites MSI'}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
             {mode === 'login' ? 'Entre para gerenciar seus portais' : 'Recupere seu acesso'}
           </p>
@@ -71,9 +82,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                   <span className="material-symbols-outlined text-lg">mail</span>
                 </span>
-                <input 
+                <input
                   required
-                  type="email" 
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl outline-none focus:ring-2 focus:ring-primary text-slate-900 dark:text-white transition-all"
@@ -84,7 +95,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
             <div>
               <div className="flex justify-between mb-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Senha</label>
-                <button 
+                <button
                   type="button"
                   onClick={() => setMode('forgot-password')}
                   className="text-xs font-bold text-primary hover:underline"
@@ -96,9 +107,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                   <span className="material-symbols-outlined text-lg">lock</span>
                 </span>
-                <input 
+                <input
                   required
-                  type="password" 
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl outline-none focus:ring-2 focus:ring-primary text-slate-900 dark:text-white transition-all"
@@ -106,7 +117,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
                 />
               </div>
             </div>
-            <button 
+            <button
               type="submit"
               className="w-full py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98]"
             >
@@ -121,21 +132,21 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                   <span className="material-symbols-outlined text-lg">mail</span>
                 </span>
-                <input 
+                <input
                   required
-                  type="email" 
+                  type="email"
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl outline-none focus:ring-2 focus:ring-primary text-slate-900 dark:text-white transition-all"
                   placeholder="msig12@gmail.com"
                 />
               </div>
             </div>
-            <button 
+            <button
               type="submit"
               className="w-full py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all"
             >
               Enviar Recuperação
             </button>
-            <button 
+            <button
               type="button"
               onClick={() => setMode('login')}
               className="w-full text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"

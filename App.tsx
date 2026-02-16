@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Site, ViewMode, AdminSubView } from './types';
 import { useSites } from './hooks/useSites';
 import { useCategories } from './hooks/useCategories';
+import { useSettings } from './hooks/useSettings';
 import PortalView from './components/PortalView';
 import AdminView from './components/AdminView';
 import AnalyticsView from './components/AnalyticsView';
@@ -10,11 +11,22 @@ import AddSiteModal from './components/AddSiteModal';
 import AuthView from './components/AuthView';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('msi_auth_token') === 'valid';
+  });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      localStorage.setItem('msi_auth_token', 'valid');
+    } else {
+      localStorage.removeItem('msi_auth_token');
+    }
+  }, [isAuthenticated]);
 
   // Integração com Supabase via Hooks
   const { sites, addSite, updateSite, deleteSite, loading: sitesLoading } = useSites();
   const { categories, addCategory, deleteCategory, loading: categoriesLoading } = useCategories();
+  const { settings } = useSettings();
 
   const [viewMode, setViewMode] = useState<ViewMode>('portal');
   const [adminSubView, setAdminSubView] = useState<AdminSubView>('sites');
@@ -58,8 +70,27 @@ const App: React.FC = () => {
 
   // Se não estiver autenticado, mostra apenas a tela de Login
   if (!isAuthenticated) {
-    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
+    return <AuthView onLogin={() => setIsAuthenticated(true)} settings={settings} />;
   }
+
+  const renderLogo = (size: 'small' | 'large' = 'large') => {
+    if (settings?.logo_url) {
+      return (
+        <img
+          src={settings.logo_url}
+          alt={settings.org_name || "Logo"}
+          className={`${size === 'small' ? 'h-8' : 'h-10'} w-auto object-contain rounded-lg`}
+        />
+      );
+    }
+    return (
+      <div className={`flex items-center justify-center bg-primary rounded-lg ${size === 'small' ? 'p-1.5' : 'p-2'} text-white`}>
+        <span className={`material-symbols-outlined ${size === 'small' ? 'text-xl' : 'text-2xl'}`}>
+          {viewMode === 'portal' ? 'hub' : 'rocket_launch'}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <div className={`relative flex min-h-screen w-full flex-col overflow-x-hidden ${viewMode === 'admin' ? 'lg:flex-row' : ''}`}>
@@ -68,11 +99,9 @@ const App: React.FC = () => {
       {viewMode === 'admin' && (
         <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-border-dark flex-col bg-white dark:bg-background-dark shrink-0 h-screen sticky top-0">
           <div className="p-6 flex items-center gap-3">
-            <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white">rocket_launch</span>
-            </div>
+            {renderLogo()}
             <div>
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Sites MSI</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">{settings?.org_name || 'Sites MSI'}</h1>
               <p className="text-xs text-slate-500 dark:text-[#92adc9]">Painel Admin v2.4</p>
             </div>
           </div>
@@ -137,19 +166,15 @@ const App: React.FC = () => {
             {/* Branding (Only in Portal Mode) */}
             {viewMode === 'portal' && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center bg-primary rounded-lg p-1.5 text-white">
-                  <span className="material-symbols-outlined text-2xl">hub</span>
-                </div>
-                <h2 className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight hidden sm:block">Sites MSI</h2>
+                {renderLogo()}
+                <h2 className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight hidden sm:block">{settings?.org_name || 'Sites MSI'}</h2>
               </div>
             )}
 
             {/* Branding (Mobile Admin Mode) */}
             {viewMode === 'admin' && (
               <div className="lg:hidden flex items-center gap-3">
-                <div className="bg-primary rounded-lg p-1.5 text-white">
-                  <span className="material-symbols-outlined text-xl">rocket_launch</span>
-                </div>
+                {renderLogo('small')}
               </div>
             )}
 
