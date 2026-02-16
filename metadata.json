@@ -1,0 +1,5 @@
+{
+  "name": "Sites MSI",
+  "description": "A centralized dashboard and administration panel for managing organizational sites, supporting both a user-facing portal and an admin management view.",
+  "requestFramePermissions": []
+}
